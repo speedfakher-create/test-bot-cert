@@ -2,18 +2,18 @@ import os
 import json
 import base64
 import tempfile
+import threading
 from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import requests
 from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
 TOKEN = os.getenv("BOT_TOKEN", "8428090354:AAF-skw72MrdGssNTCjQLGSLQQt3utgPzP0")
-IOSERTEST_TOKEN = os.getenv("IOSERTEST_TOKEN", "PYdLuEu5POfM3PkiLMrVRUzN3JNxPYjx")
-IOSERTEST_CERT_ENDPOINT = os.getenv(
-    "IOSERTEST_CERT_ENDPOINT",
-    "https://api.iosertest.com/api/PASTE_CERT_LOOKUP_ENDPOINT_HERE",
-)
+IOSERTEST_TOKEN = os.getenv("IOSERTEST_TOKEN", "PYdLuEu5POfM3PkiLMrVRUzN3JNxPYjx
+")
+IOSERTEST_CERT_ENDPOINT = os.getenv("IOSERTEST_CERT_ENDPOINT", "")
 IOSERTEST_BALANCE_ENDPOINT = os.getenv(
     "IOSERTEST_BALANCE_ENDPOINT",
     "https://api.iosertest.com/api/getassets",
@@ -26,6 +26,28 @@ BTN_API_BAL = "💰 Check API Balance"
 BTN_START = "🏠 Start"
 
 
+# ----------------------------
+# Health server for Koyeb
+# ----------------------------
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        return
+
+
+def run_health_server():
+    port = int(os.getenv("PORT", "8000"))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    server.serve_forever()
+
+
+# ----------------------------
+# Data helpers
+# ----------------------------
 def load_data():
     if not os.path.exists(DATA_FILE):
         return {"sales_log": []}
@@ -103,6 +125,9 @@ def format_ts(ts):
         return "Unknown"
 
 
+# ----------------------------
+# API helpers
+# ----------------------------
 def build_cert_message(api_data: dict):
     state_text = "✅ Valid" if api_data.get("state") else "❌ Invalid"
     warranty_text = "✅ Yes" if api_data.get("warranty") else "❌ No"
@@ -141,6 +166,9 @@ def call_balance_api():
     return r.json()
 
 
+# ----------------------------
+# Telegram handlers
+# ----------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     text = (
@@ -159,7 +187,7 @@ async def show_my_keys(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not rows:
         await update.message.reply_text(
             "No certificate keys found for your account.",
-            reply_markup=keyboard()
+            reply_markup=keyboard(),
         )
         return
 
@@ -241,7 +269,10 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
 
             api_data = resp.get("data", {}) or {}
-            await update.message.reply_text(build_cert_message(api_data), reply_markup=keyboard())
+            await update.message.reply_text(
+                build_cert_message(api_data),
+                reply_markup=keyboard(),
+            )
 
             mobileprovision2 = api_data.get("mobileprovision2", "") or ""
             p12_data = api_data.get("p12", "") or ""
@@ -259,7 +290,7 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 with open(path, "rb") as f:
                     await update.message.reply_document(
                         document=f,
-                        filename="certificate.mobileprovision"
+                        filename="certificate.mobileprovision",
                     )
 
             if p12_data:
@@ -267,27 +298,42 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 with open(path, "rb") as f:
                     await update.message.reply_document(
                         document=f,
-                        filename="certificate.p12"
+                        filename="certificate.p12",
                     )
 
         except Exception as e:
-            await update.message.reply_text(f"❌ Error:\n{e}", reply_markup=keyboard())
+            await update.message.reply_text(
+                f"❌ Error:\n{e}",
+                reply_markup=keyboard(),
+            )
         finally:
             context.user_data.clear()
         return
 
-    await update.message.reply_text("Choose an option from the menu.", reply_markup=keyboard())
+    await update.message.reply_text(
+        "Choose an option from the menu.",
+        reply_markup=keyboard(),
+    )
 
 
+# ----------------------------
+# Main
+# ----------------------------
 def main():
-    if "PASTE_YOUR_BOT_TOKEN_HERE" in TOKEN or not TOKEN:
+    if not TOKEN:
         raise RuntimeError("BOT_TOKEN is missing.")
-    if "PASTE_YOUR_IOSERTEST_TOKEN_HERE" in IOSERTEST_TOKEN or not IOSERTEST_TOKEN:
+    if not IOSERTEST_TOKEN:
         raise RuntimeError("IOSERTEST_TOKEN is missing.")
+    if not IOSERTEST_CERT_ENDPOINT:
+        raise RuntimeError("IOSERTEST_CERT_ENDPOINT is missing.")
+
+    threading.Thread(target=run_health_server, daemon=True).start()
 
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT, text_router))
+
+    # مهم: قبل التشغيل، احذف أي webhook قديم لنفس التوكن
     app.run_polling(drop_pending_updates=True)
 
 
