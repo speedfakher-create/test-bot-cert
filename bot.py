@@ -9,7 +9,7 @@ from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
 
-TOKEN = os.getenv("BOT_TOKEN", "8428090354:AAF-skw72MrdGssNTCjQLGSLQQt3utgPzP0")
+TOKEN = os.getenv("BOT_TOKEN", "8428090354:AAGN07QIRwTPw-YQz8HZpMC571o9LXnsQHc")
 IOSERTEST_TOKEN = os.getenv("IOSERTEST_TOKEN", "PYdLuEu5POfM3PkiLMrVRUzN3JNxPYjx
 ")
 IOSERTEST_CERT_ENDPOINT = os.getenv("IOSERTEST_CERT_ENDPOINT", "")
