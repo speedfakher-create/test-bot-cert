@@ -3423,17 +3423,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   except Exception:
       pass
 
- menu_items = [
-    button_texts["buy"][lang],
-    button_texts["balance"][lang],
-    button_texts["activity"][lang],
-    button_texts["cert"][lang],
-    button_texts["my_cert_keys"][lang],
-    button_texts["api_balance"][lang],
-]
-if uid in admins:
-    menu_items.append(button_texts["admin"][lang])
-reply_keyboard = build_rows(menu_items, 2)
+  menu_items = [button_texts["buy"][lang], button_texts["balance"][lang], button_texts["activity"][lang]]
+  if uid in admins:
+      menu_items.append(button_texts["admin"][lang])
+  reply_keyboard = build_rows(menu_items, 2)
+
   try:
       if is_seller:
           reply_keyboard.append([button_texts["seller_report"]["en"]])
