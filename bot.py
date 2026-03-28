@@ -12,7 +12,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, ContextTyp
 TOKEN = os.getenv("BOT_TOKEN", "8428090354:AAGN07QIRwTPw-YQz8HZpMC571o9LXnsQHc")
 IOSERTEST_TOKEN = os.getenv("IOSERTEST_TOKEN", "PYdLuEu5POfM3PkiLMrVRUzN3JNxPYjx
 ")
-IOSERTEST_CERT_ENDPOINT = os.getenv("IOSERTEST_CERT_ENDPOINT", "")
+IOSERTEST_CERT_ENDPOINT = os.getenv("IOSERTEST_CERT_ENDPOINT", "https://api.iosertest.com/api/adddevice")
 IOSERTEST_BALANCE_ENDPOINT = os.getenv(
 "IOSERTEST_BALANCE_ENDPOINT",
 "https://api.iosertest.com/api/getassets",
